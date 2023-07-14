@@ -1,0 +1,391 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Calculate Schedule Pricing",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/calculate-schedule-price": {
+      "post": {
+        "summary": "Calculate schedule prices",
+        "description": "\nThis endpoint is primary aimed at publishers who need to calculate a total price based on unit price and the number of issues published between 2 dates\n\nNote: The endpoint expects the request body to be in JSON format.\n",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Request"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "errorMessage": "validation failure",
+                  "validationErrors": [
+                    {
+                      "path": "periodLength",
+                      "message": "Required"
+                    },
+                    {
+                      "path": "periodType",
+                      "message": "Invalid enum value. Expected 'day' | 'month' | 'year'. Received 'Month'"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "errorMessage": "Internal Server Error. Please try again later."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ValidationErrors": {
+        "type": "object",
+        "description": "An object containing the specific validation error.",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "The request field that has failed validation."
+          },
+          "message": {
+            "type": "string",
+            "description": "The reason for validation failure."
+          }
+        },
+        "example": {
+          "path": "periodLength",
+          "message": "Required"
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "An object containing the error message and if required, the validation errors.",
+        "properties": {
+          "errorMessage": {
+            "type": "string",
+            "description": "The error message."
+          },
+          "validationErrors": {
+            "type": "array",
+            "description": "An array of validation failures.",
+            "items": {
+              "$ref": "#/components/schemas/ValidationErrors"
+            }
+          }
+        }
+      },
+      "PeriodType": {
+        "type": "string",
+        "description": "The period type which dictates how the end date is calculated.",
+        "enum": [
+          "day",
+          "month",
+          "year"
+        ]
+      },
+      "ScheduleDays": {
+        "type": "string",
+        "description": "The schedule day",
+        "enum": [
+          "monday",
+          "tuesday",
+          "wednesday",
+          "thursday",
+          "friday",
+          "saturday",
+          "sunday"
+        ]
+      },
+      "Schedule": {
+        "type": "object",
+        "properties": {
+          "dayOfWeek": {
+            "$ref": "#/components/schemas/ScheduleDays"
+          },
+          "countOfDays": {
+            "type": "number",
+            "description": "The number of occurances of the specific schedule day between the start and end date."
+          },
+          "schedulePrice": {
+            "type": "number",
+            "description": "The calculated price for the schedule."
+          }
+        },
+        "example": {
+          "dayOfWeek": "monday",
+          "countOfDays": 5,
+          "schedulePrice": 17.65
+        }
+      },
+      "Item": {
+        "type": "object",
+        "properties": {
+          "itemReference": {
+            "type": "string",
+            "description": "The reference of the item."
+          },
+          "unitPrice": {
+            "type": "number",
+            "description": "The unit price of the item."
+          },
+          "itemTotal": {
+            "type": "number",
+            "description": "The calculated total for the schedules against an item"
+          },
+          "schedules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Schedule"
+            }
+          }
+        },
+        "example": {
+          "itemReference": "PRODUCT1",
+          "unitPrice": 3.53,
+          "itemTotal": 63.54,
+          "schedule": [
+            {
+              "dayOfWeek": "monday",
+              "countOfDays": 5,
+              "schedulePrice": 17.65
+            },
+            {
+              "dayOfWeek": "thursday",
+              "countOfDays": 5,
+              "schedulePrice": 17.65
+            }
+          ]
+        }
+      },
+      "Response": {
+        "type": "object",
+        "properties": {
+          "periodStartDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The start date of the period."
+          },
+          "periodEndDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The calculated end date of the period, based on periodLength and periodType"
+          },
+          "totalPrice": {
+            "type": "number",
+            "description": "The calculated total price for all item schedules"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Item"
+            }
+          }
+        },
+        "example": {
+          "periodStartDate": "2023-07-14T20:52:01Z",
+          "periodEndDate": "2023-08-14T20:52:01.000Z",
+          "totalPrice": 112.4,
+          "items": [
+            {
+              "itemReference": "PRODUCT1",
+              "unitPrice": 3.53,
+              "itemTotal": 63.54,
+              "schedules": [
+                {
+                  "dayOfWeek": "monday",
+                  "countOfDays": 5,
+                  "schedulePrice": 17.65
+                },
+                {
+                  "dayOfWeek": "wednesday",
+                  "countOfDays": 4,
+                  "schedulePrice": 14.12
+                },
+                {
+                  "dayOfWeek": "friday",
+                  "countOfDays": 4,
+                  "schedulePrice": 14.12
+                },
+                {
+                  "dayOfWeek": "sunday",
+                  "countOfDays": 5,
+                  "schedulePrice": 17.65
+                }
+              ]
+            },
+            {
+              "itemReference": "PRODUCT2",
+              "unitPrice": 3.49,
+              "itemTotal": 48.86,
+              "schedules": [
+                {
+                  "dayOfWeek": "monday",
+                  "countOfDays": 5,
+                  "schedulePrice": 17.45
+                },
+                {
+                  "dayOfWeek": "thursday",
+                  "countOfDays": 4,
+                  "schedulePrice": 13.96
+                },
+                {
+                  "dayOfWeek": "sunday",
+                  "countOfDays": 5,
+                  "schedulePrice": 17.45
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "Request": {
+        "type": "object",
+        "properties": {
+          "periodStartDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The start date of the period."
+          },
+          "periodLength": {
+            "type": "number",
+            "description": "The length of the period in units."
+          },
+          "periodType": {
+            "$ref": "#/components/schemas/PeriodType"
+          },
+          "excludeCurrentDay": {
+            "type": "boolean",
+            "description": "Flag to exclude the current day from calculations (optional)."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "itemReference": {
+                  "type": "string",
+                  "description": "The reference of the item."
+                },
+                "unitPrice": {
+                  "type": "number",
+                  "description": "The unit price of the item."
+                },
+                "schedule": {
+                  "type": "object",
+                  "properties": {
+                    "monday": {
+                      "type": "boolean",
+                      "description": "Flag to indicate if the item is scheduled for Mondays (optional)."
+                    },
+                    "tuesday": {
+                      "type": "boolean",
+                      "description": "Flag to indicate if the item is scheduled for Tuesdays (optional)."
+                    },
+                    "wednesday": {
+                      "type": "boolean",
+                      "description": "Flag to indicate if the item is scheduled for Wednesdays (optional)."
+                    },
+                    "thursday": {
+                      "type": "boolean",
+                      "description": "Flag to indicate if the item is scheduled for Thursdays (optional)."
+                    },
+                    "friday": {
+                      "type": "boolean",
+                      "description": "Flag to indicate if the item is scheduled for Fridays (optional)."
+                    },
+                    "saturday": {
+                      "type": "boolean",
+                      "description": "Flag to indicate if the item is scheduled for Saturdays (optional)."
+                    },
+                    "sunday": {
+                      "type": "boolean",
+                      "description": "Flag to indicate if the item is scheduled for Sundays (optional)."
+                    }
+                  }
+                }
+              }
+            },
+            "required": [
+              "itemReference",
+              "unitPrice",
+              "schedule"
+            ]
+          }
+        },
+        "example": {
+          "periodStartDate": "2023-07-14T20:52:01Z",
+          "periodLength": 1,
+          "periodType": "month",
+          "excludeCurrentDay": true,
+          "items": [
+            {
+              "itemReference": "PRODUCT1",
+              "unitPrice": 3.53,
+              "schedule": {
+                "monday": true,
+                "tuesday": false,
+                "wednesday": true,
+                "thursday": false,
+                "friday": true,
+                "saturday": false,
+                "sunday": true
+              }
+            },
+            {
+              "itemReference": "PRODUCT2",
+              "unitPrice": 3.49,
+              "schedule": {
+                "monday": true,
+                "tuesday": false,
+                "wednesday": false,
+                "thursday": true,
+                "friday": false,
+                "saturday": false,
+                "sunday": true
+              }
+            }
+          ]
+        },
+        "required": [
+          "periodStartDate",
+          "periodLength",
+          "periodType",
+          "items"
+        ]
+      }
+    }
+  }
+}
